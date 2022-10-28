@@ -3,6 +3,5 @@
         "array": "cpp",
         "initializer_list": "cpp",
         "utility": "cpp"
-    },
-    "python.pythonPath": "C:\\Users\\david\\AppData\\Local\\Programs\\Python\\Python37\\python.exe"
+    }
 }
