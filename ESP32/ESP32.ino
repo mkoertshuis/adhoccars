@@ -49,13 +49,13 @@ void IRAM_ATTR onTimer()
 void initWireless()
 {
     Serial.printf("Connecting to %s ", ssid);
-    WiFi.softAP("ESPsoftAP_01", "password123");
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".\n");
-    }
+    WiFi.softAP("Banaan", "password123");
+    // WiFi.begin(ssid, password);
+    // while (WiFi.status() != WL_CONNECTED)
+    // {
+    //     delay(500);
+    //     Serial.print(".\n");
+    // }
     Serial.println(" connected");
     BlinkWLED = false;
 
@@ -74,7 +74,7 @@ void sendConnection()
 
 void processUdpPacket(byte *packet)
 {
-    if (packet[0] == 'F')
+    if (packet[0] == 'W')
     {
         Serial.println("Driving forwards");
         driveForwards();
@@ -113,7 +113,7 @@ void setup()
 #ifdef __DEBUG__
     Serial.println("Booting ESP module");
 #endif
-
+    initWireless();
     pinMode(WIFILED, OUTPUT);
     digitalWrite(WIFILED, LOW);
 
