@@ -35,6 +35,14 @@ uint64_t mac_self = 0;
 
 hw_timer_t *timer = NULL;
 
+enum movement {
+  FORWARD,
+  BACK,
+  STOP
+};
+
+enum movement prev_state;
+
 
 // Packet format:
 // Opcode [1 b]   | Arguments [n b]
@@ -291,13 +299,25 @@ void loop(){
     }
 
     if (rssi_leader_val - rssi_self_val > distance + threshold) {
-      move_forward();
+      if (prev_state != FORWARD) {
+        move_forward();
+        prev_state = FORWARD;
+      }
+      
     }
     else if (rssi_leader_val - rssi_self_val < distance + threshold) {
-      move_back();
+      if (prev_state != BACK) {
+        move_back();
+        prev_state = BACK;
+      }
+      
     }
     else {
-      stop();
+      if (prev_state != STOP) {
+        stop();
+        prev_state = STOP;
+      }
+      
     }
   }
 
