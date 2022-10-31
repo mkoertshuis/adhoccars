@@ -1,41 +1,22 @@
 #include "car.h"
 
 #include <WiFi.h>
-#include <IPAddress.h>
 #include <WiFiUdp.h>
 
-#define WIFILED LED_BUILTIN
-#define __DEBUG__ 1
-#define measurements 10
-
-const char *udpAddress = "255.255.255.255";
-unsigned int udpPort = 4444;  // local port to listen on
-char ssid[] = "rssi-cars";
-char password[] = "password123";
+const char * networkName = "rssi-cars";
+const int udpPort = 3333;
 
 int8_t rssi_leader[measurements];
 int8_t rssi_self[measurements];
 uint_64_t mac_packet = 0;
 uint_64_t mac_self = 0;
 
+char packet[255];
+bool connected = false;
+
 WiFiUDP Udp;
-WiFiClient client;
 
 hw_timer_t *timer = NULL;
-bool WLEDState = false;
-bool BlinkWLED = false;
-
-enum LEDSTATE {
-  OFF,
-  ON,
-  BLINK
-} ledState;
-
-enum STATE {
-  IDLE,
-  DRIVE,
-  BLINK
-} ledState;
 
 
 /*
