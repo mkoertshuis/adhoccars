@@ -2,7 +2,7 @@
 #include <WiFiUdp.h>
 
 #define measurements 5
-#define threshold 3+
+#define threshold 3
 #define distance 10
 
 const char * networkName = "rssi-cars";
