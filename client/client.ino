@@ -2,7 +2,7 @@
 #include <WiFiUdp.h>
 
 #define measurements 5
-#define threshold 5
+#define threshold 3+
 #define distance 10
 
 const char * networkName = "rssi-cars";
@@ -26,10 +26,11 @@ const int control[4][2] = { {rf1, rf2}, {rb1, rb2}, {lf1, lf2}, {lb1, lb2} };
 int8_t rssi_leader[measurements];
 int8_t rssi_self[measurements];
 
-int8_t rssi_leader_val;
-int8_t rssi_self_val;
+int8_t rssi_leader_val = 0;
+int8_t rssi_self_val = 0;
 
 uint64_t mac_packet = 0;
+uint64_t mac_leader = 0;
 uint64_t mac_self = 0;
 
 hw_timer_t *timer = NULL;
@@ -200,7 +201,9 @@ void packet_handler(char * packet) {
     case 1: // control
     {
       uint8_t direction = (uint8_t) packet[1];
-      control_handler(direction);
+      if (leader) {
+        control_handler(direction);
+      }
       break;
     }
     case 2: // Leader
@@ -235,10 +238,13 @@ void setup(){
 void loop(){
   //only send data when connected
   if(!connected || !leader_assigned){
-    Serial.print("Connection: %d Leader assigned: %d\n", connected, leader_assigned);
+    Serial.print("Connection: ");
+    Serial.print(connected);
+    Serial.print(" Leader assigned: ");
+    Serial.println(leader_assigned);
     //Wait for 1 second
     delay(1000);
-    continue;
+    return;
   }
 
 
@@ -286,10 +292,13 @@ void loop(){
 
     if (rssi_leader_val - rssi_self_val > distance + threshold) {
       move_forward();
-
-
     }
-
+    else if (rssi_leader_val - rssi_self_val < distance + threshold) {
+      move_forward();
+    }
+    else {
+      stop();
+    }
   }
 
 }
