@@ -1,9 +1,15 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
+#define measurements 5
+#define threshold 5
+#define distance 10
+
 const char * networkName = "rssi-cars";
 const int udpPort = 3333;
 boolean connected = false;
+boolean leader_assigned = false;
+boolean leader = false;
 WiFiUDP udp;
 char packet[255];
 
@@ -16,6 +22,18 @@ const int rb2 = 15;
 const int lb1 = 16;
 const int lb2 = 4;
 const int control[4][2] = { {rf1, rf2}, {rb1, rb2}, {lf1, lf2}, {lb1, lb2} }; 
+
+int8_t rssi_leader[measurements];
+int8_t rssi_self[measurements];
+
+int8_t rssi_leader_val;
+int8_t rssi_self_val;
+
+uint64_t mac_packet = 0;
+uint64_t mac_self = 0;
+
+hw_timer_t *timer = NULL;
+
 
 // Packet format:
 // Opcode [1 b]   | Arguments [n b]
@@ -116,6 +134,14 @@ void turn_right() {
   }
 }
 
+void set_rssi_leader(uint8_t rssi) {
+  rssi_leader_val = rssi;
+}
+
+void set_rssi_self(uint8_t rssi) {
+  rssi_self_val = rssi;
+}
+
 void control_handler(uint8_t direction) {
   switch (direction) {
     case 1: // forward
@@ -136,14 +162,59 @@ void control_handler(uint8_t direction) {
   }
 }
 
+void rssi_handler(uint64_t mac, uint8_t rssi) {
+  if (mac == mac_leader) {
+    set_rssi_leader(rssi);
+  }
+}
+
+void leader_handler(uint64_t mac) {
+  if (mac == ESP.getEfuseMac()) {
+    leader = true;
+  }
+  else {
+    leader = false;
+  }
+  leader_assigned = true;
+}
+
 void packet_handler(char * packet) {
   // Change the char of the packet to a byte for easier handling
   uint8_t op = (uint8_t) packet[0];
   switch (op) {
+    case 0: // RSSI
+    {
+      mac_packet = 0;
+      mac_packet += (uint64_t) packet[1] << 56;
+      mac_packet += (uint64_t) packet[2] << 48;
+      mac_packet += (uint64_t) packet[3] << 40;
+      mac_packet += (uint64_t) packet[4] << 32;
+      mac_packet += (uint64_t) packet[5] << 24;
+      mac_packet += (uint64_t) packet[6] << 16;
+      mac_packet += (uint64_t) packet[7] << 8;
+      mac_packet += (uint64_t) packet[8];
+      uint8_t rssi = (uint8_t) packet[9];
+      rssi_handler(mac_packet, rssi);
+      break;
+    }
     case 1: // control
     {
       uint8_t direction = (uint8_t) packet[1];
       control_handler(direction);
+      break;
+    }
+    case 2: // Leader
+    {
+      mac_packet = 0;
+      mac_packet += (uint64_t) packet[1] << 56;
+      mac_packet += (uint64_t) packet[2] << 48;
+      mac_packet += (uint64_t) packet[3] << 40;
+      mac_packet += (uint64_t) packet[4] << 32;
+      mac_packet += (uint64_t) packet[5] << 24;
+      mac_packet += (uint64_t) packet[6] << 16;
+      mac_packet += (uint64_t) packet[7] << 8;
+      mac_packet += (uint64_t) packet[8];
+      leader_handler(mac_packet);
       break;
     }
     default:
@@ -163,7 +234,16 @@ void setup(){
 
 void loop(){
   //only send data when connected
-  if(connected){
+  if(!connected || !leader_assigned){
+    Serial.print("Connection: %d Leader assigned: %d\n", connected, leader_assigned);
+    //Wait for 1 second
+    delay(1000);
+    continue;
+  }
+
+
+  // If this robot is the leader
+  if (leader) {
     //Send a packet
     udp.beginPacket(WiFi.broadcastIP(), udpPort);
     udp.printf("Seconds since boot: %lu", millis()/1000);
@@ -187,6 +267,29 @@ void loop(){
       packet_handler(packet);
     }
   }
-  //Wait for 1 second
-  delay(1000);
+
+  // If this robot is the follower
+  if (!leader) {
+    int packetSize = udp.parsePacket();
+    // udp.remoteIP()
+    if (packetSize) {
+      Serial.print("Received packet! Size: ");
+      Serial.println(packetSize); 
+      int len = udp.read(packet, 255);
+      if (len > 0)
+      {
+        packet[len] = '\0';
+      }
+      Serial.println(packet);
+      packet_handler(packet);
+    }
+
+    if (rssi_leader_val - rssi_self_val > distance + threshold) {
+      move_forward();
+
+
+    }
+
+  }
+
 }
