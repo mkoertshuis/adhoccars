@@ -1,22 +1,19 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-// WiFi network name and password:
-const char * networkName = "yourAP";
-// const char * networkPswd = "your-password";
-
-//IP address to send UDP data to:
-// either use the ip address of the server or 
-// a network broadcast address
-// const char * udpAddress = "192.168.0.255";
+const char * networkName = "rssi-cars";
 const int udpPort = 3333;
-
-//Are we currently connected?
 boolean connected = false;
-
-//The udp library class
 WiFiUDP udp;
 char packet[255];
+
+// Packet format:
+// Opcode [1 b]   | Arguments [n b]
+// ---------------|----------------
+// RSSI (0x00)    | Fuse MAC (8 b) RSSI value (1 b)
+// Control (0x01) | Direction (1 b)
+// Leader (0x02)  | Fuse MAC (8 b)
+// Kill (0x03)    | (0 b)
 
 void setup(){
   // Initilize hardware serial:
@@ -32,12 +29,14 @@ void loop(){
     //Send a packet
     udp.beginPacket(WiFi.broadcastIP(), udpPort);
     udp.printf("Seconds since boot: %lu", millis()/1000);
+    udp.write();
+    udp.read();
     udp.endPacket();
 
-    Serial.println(udp.readStringUntil('\n'));
-    
+    ESP.getEfuseMac()
 
     int packetSize = udp.parsePacket();
+    udp.remoteIP()
     if (packetSize) {
       Serial.print("Received packet! Size: ");
       Serial.println(packetSize); 
@@ -85,4 +84,35 @@ void WiFiEvent(WiFiEvent_t event){
           break;
       default: break;
     }
+}
+motors.ino
+const int rf1 = 19;
+const int rf2 = 18;
+const int lf1 = 5;
+const int lf2 = 17;
+const int rb1 = 14;
+const int rb2 = 15;
+const int lb1 = 16;
+const int lb2 = 4;
+
+void setup() {
+  pinMode(rf1, OUTPUT);
+  pinMode(rf2, OUTPUT);
+  pinMode(lf1, OUTPUT);
+  pinMode(lf2, OUTPUT);
+  pinMode(rb1, OUTPUT);
+  pinMode(rb2, OUTPUT);
+  pinMode(lb1, OUTPUT);
+  pinMode(lb2, OUTPUT);
+}
+
+void loop() {
+  analogWrite(rf1, 255);
+  analogWrite(rf2, 0);
+  analogWrite(lf1, 127);
+  analogWrite(lf2, 0);
+  analogWrite(rb1, 255);
+  analogWrite(rb2, 0);
+  analogWrite(lb1, 127);
+  analogWrite(lb2, 0);
 }
