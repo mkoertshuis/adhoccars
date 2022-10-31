@@ -294,7 +294,7 @@ void loop(){
       move_forward();
     }
     else if (rssi_leader_val - rssi_self_val < distance + threshold) {
-      move_forward();
+      move_back();
     }
     else {
       stop();
