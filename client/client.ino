@@ -5,7 +5,7 @@
 #define threshold 3
 #define distance 10
 
-const char * networkName = "rssi-cars";
+const char *networkName = "rssi-cars";
 const int udpPort = 3333;
 boolean connected = false;
 boolean leader_assigned = false;
@@ -17,7 +17,7 @@ const int rf1 = 19;
 const int rf2 = 18;
 const int lf1 = 5;
 const int lf2 = 17;
-const int rb1 = 14;
+const int rb1 = 2;
 const int rb2 = 15;
 const int lb1 = 16;
 const int lb2 = 4;
@@ -178,7 +178,8 @@ void rssi_handler(uint64_t mac, uint8_t rssi) {
 }
 
 void leader_handler(uint64_t mac) {
-  if (mac == ESP.getEfuseMac()) {
+  mac_leader = mac;
+  if (mac_leader == mac_self) {
     leader = true;
   }
   else {
@@ -238,6 +239,8 @@ void setup(){
 
   // Initilize hardware serial:
   Serial.begin(115200);
+  mac_self = ESP.getEfuseMac();
+  stop();
   
   //Connect to the WiFi network
   connectToWiFi(networkName);
@@ -255,6 +258,19 @@ void loop(){
     return;
   }
 
+  int packetSize = udp.parsePacket();
+  if (packetSize) {
+    Serial.print("Received packet! Size: ");
+    Serial.println(packetSize); 
+    int len = udp.read(packet, 255);
+    if (len > 0)
+    {
+      packet[len] = '\0';
+    }
+    Serial.println(packet);
+    packet_handler(packet);
+  }
+
 
   // If this robot is the leader
   if (leader) {
@@ -264,61 +280,32 @@ void loop(){
     // udp.write();
     udp.read();
     udp.endPacket();
-
-    // ESP.getEfuseMac()
-
-    int packetSize = udp.parsePacket();
-    // udp.remoteIP()
-    if (packetSize) {
-      Serial.print("Received packet! Size: ");
-      Serial.println(packetSize); 
-      int len = udp.read(packet, 255);
-      if (len > 0)
-      {
-        packet[len] = '\0';
-      }
-      Serial.println(packet);
-      packet_handler(packet);
-    }
   }
 
   // If this robot is the follower
   if (!leader) {
-    int packetSize = udp.parsePacket();
-    // udp.remoteIP()
-    if (packetSize) {
-      Serial.print("Received packet! Size: ");
-      Serial.println(packetSize); 
-      int len = udp.read(packet, 255);
-      if (len > 0)
-      {
-        packet[len] = '\0';
-      }
-      Serial.println(packet);
-      packet_handler(packet);
-    }
 
     if (rssi_leader_val - rssi_self_val > distance + threshold) {
       if (prev_state != FORWARD) {
         move_forward();
         prev_state = FORWARD;
       }
-      
     }
+
     else if (rssi_leader_val - rssi_self_val < distance + threshold) {
       if (prev_state != BACK) {
         move_back();
         prev_state = BACK;
       }
-      
     }
+
     else {
       if (prev_state != STOP) {
         stop();
         prev_state = STOP;
-      }
-      
+      } 
     }
+
   }
 
 }
