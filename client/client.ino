@@ -10,6 +10,7 @@ const int udpPort = 3333;
 boolean connected = false;
 boolean leader_assigned = false;
 boolean leader = false;
+boolean rssi_received = false;
 WiFiUDP udp;
 char packet[255];
 
@@ -174,6 +175,7 @@ void control_handler(uint8_t direction) {
 void rssi_handler(uint64_t mac, uint8_t rssi) {
   if (mac == mac_leader) {
     set_rssi_leader(rssi);
+    rssi_received = true;
   }
 }
 
@@ -240,9 +242,12 @@ void setup(){
   // Initilize hardware serial:
   Serial.begin(115200);
   mac_self = ESP.getEfuseMac();
+
   
   //Connect to the WiFi network
   connectToWiFi(networkName);
+  leader_assigned = true;
+  leader = true;
 }
 
 void loop(){
@@ -275,15 +280,16 @@ void loop(){
   if (leader) {
     //Send a packet
     udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    udp.printf("Seconds since boot: %lu", millis()/1000);
+    udp.printf("MAC: %d", mac_self);
+    udp.printf("RSSI: %d", WiFi.RSSI());
+
     // udp.write();
-    udp.read();
+    // udp.read();
     udp.endPacket();
   }
 
   // If this robot is the follower
-  if (!leader) {
-
+  if (!leader && rssi_received) {
     if (rssi_leader_val - rssi_self_val > distance + threshold) {
       if (prev_state != FORWARD) {
         move_forward();
