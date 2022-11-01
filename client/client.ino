@@ -17,7 +17,7 @@ const int rf1 = 19;
 const int rf2 = 18;
 const int lf1 = 5;
 const int lf2 = 17;
-const int rb1 = 2;
+const int rb1 = 14;
 const int rb2 = 15;
 const int lb1 = 16;
 const int lb2 = 4;
@@ -240,7 +240,6 @@ void setup(){
   // Initilize hardware serial:
   Serial.begin(115200);
   mac_self = ESP.getEfuseMac();
-  stop();
   
   //Connect to the WiFi network
   connectToWiFi(networkName);
