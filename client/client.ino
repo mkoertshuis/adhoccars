@@ -257,10 +257,10 @@ void loop(){
     Serial.print(connected);
     Serial.print(" Leader assigned: ");
     Serial.println(leader_assigned);
-    // udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    // udp.printf(mac_self);
-    // udp.printf(WiFi.RSSI());
-    // udp.endPacket();
+    udp.beginPacket(WiFi.broadcastIP(), udpPort);
+    udp.printf(mac_self);
+    udp.printf(WiFi.RSSI());
+    udp.endPacket();
 
     //Wait for 1 second
     delay(1000);
