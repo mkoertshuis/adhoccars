@@ -194,22 +194,7 @@ void packet_handler(char * packet) {
   // Change the char of the packet to a byte for easier handling
   uint8_t op = (uint8_t) packet[0];
   switch (op) {
-    case 4: // RSSI
-    {
-      mac_packet = 0;
-      mac_packet += (uint64_t) packet[1] << 56;
-      mac_packet += (uint64_t) packet[2] << 48;
-      mac_packet += (uint64_t) packet[3] << 40;
-      mac_packet += (uint64_t) packet[4] << 32;
-      mac_packet += (uint64_t) packet[5] << 24;
-      mac_packet += (uint64_t) packet[6] << 16;
-      mac_packet += (uint64_t) packet[7] << 8;
-      mac_packet += (uint64_t) packet[8];
-      uint8_t rssi = (uint8_t) packet[9];
-      rssi_handler(mac_packet, rssi);
-      break;
-    }
-    case 1: // control
+        case 1: // control
     {
       uint8_t direction = (uint8_t) packet[1];
       if (leader) {
@@ -229,6 +214,21 @@ void packet_handler(char * packet) {
       mac_packet += (uint64_t) packet[7] << 8;
       mac_packet += (uint64_t) packet[8];
       leader_handler(mac_packet);
+      break;
+    }
+    case 4: // RSSI
+    {
+      mac_packet = 0;
+      mac_packet += (uint64_t) packet[1] << 56;
+      mac_packet += (uint64_t) packet[2] << 48;
+      mac_packet += (uint64_t) packet[3] << 40;
+      mac_packet += (uint64_t) packet[4] << 32;
+      mac_packet += (uint64_t) packet[5] << 24;
+      mac_packet += (uint64_t) packet[6] << 16;
+      mac_packet += (uint64_t) packet[7] << 8;
+      mac_packet += (uint64_t) packet[8];
+      uint8_t rssi = (uint8_t) packet[9];
+      rssi_handler(mac_packet, rssi);
       break;
     }
     default:
@@ -257,10 +257,10 @@ void loop(){
     Serial.print(connected);
     Serial.print(" Leader assigned: ");
     Serial.println(leader_assigned);
-    udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    udp.printf(mac_self);
-    udp.printf(WiFi.RSSI());
-    udp.endPacket();
+    // udp.beginPacket(WiFi.broadcastIP(), udpPort);
+    // udp.printf(mac_self);
+    // udp.printf(WiFi.RSSI());
+    // udp.endPacket();
 
     //Wait for 1 second
     delay(1000);
