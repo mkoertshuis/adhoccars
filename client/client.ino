@@ -48,7 +48,7 @@ enum movement prev_state;
 // Packet format:
 // Opcode [1 b]   | Arguments [n b]
 // ---------------|----------------
-// RSSI (0x00)    | Fuse MAC (8 b) RSSI value (1 b)
+// RSSI (0x04)    | Fuse MAC (8 b) RSSI value (1 b)
 // Control (0x01) | Direction (1 b)
 // Leader (0x02)  | Fuse MAC (8 b)
 // Kill (0x03)    | (0 b)
@@ -194,7 +194,7 @@ void packet_handler(char * packet) {
   // Change the char of the packet to a byte for easier handling
   uint8_t op = (uint8_t) packet[0];
   switch (op) {
-    case 0: // RSSI
+    case 4: // RSSI
     {
       mac_packet = 0;
       mac_packet += (uint64_t) packet[1] << 56;
