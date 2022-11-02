@@ -1,6 +1,9 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
+#define LOW 0
+#define HIGH 255
+
 const char * networkName = "rssi-cars";
 const int udpPort = 3333;
 boolean connected = false;
@@ -20,7 +23,7 @@ const int control[4][2] = { {rf1, rf2}, {rb1, rb2}, {lf1, lf2}, {lb1, lb2} };
 // Packet format:
 // Opcode [1 b]   | Arguments [n b]
 // ---------------|----------------
-// RSSI (0x00)    | Fuse MAC (8 b) RSSI value (1 b)
+// RSSI (0x04)    | Fuse MAC (8 b) RSSI value (1 b)
 // Control (0x01) | Direction (1 b)
 // Leader (0x02)  | Fuse MAC (8 b)
 // Kill (0x03)    | (0 b)
@@ -73,33 +76,33 @@ void init_pins() {
 void stop() {
   for ( int i = 0; i < 4; ++i ) {
     for ( int j = 0; i < 2; ++j ) {
-      analogWrite(control[i][j], 0);
+      analogWrite(control[i][j], LOW);
     }
   }
 }
 
 void move_forward() {
   for ( int i = 0; i < 4; ++i ) {
-    analogWrite(control[i][0], 255);
-    analogWrite(control[i][1], 0);
+    analogWrite(control[i][0], HIGH);
+    analogWrite(control[i][1], LOW);
   }
 }
 
 void move_back() {
   for ( int i = 0; i < 4; ++i ) {
-    analogWrite(control[i][0], 0);
-    analogWrite(control[i][1], 255);
+    analogWrite(control[i][0], LOW);
+    analogWrite(control[i][1], HIGH);
   }
 }
 
 void turn_left() {
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      analogWrite(control[i][0], 255);
-      analogWrite(control[i][1], 0);
+      analogWrite(control[i][0], HIGH);
+      analogWrite(control[i][1], LOW);
     } else {
-      analogWrite(control[i][0], 0);
-      analogWrite(control[i][1], 255); 
+      analogWrite(control[i][0], LOW);
+      analogWrite(control[i][1], HIGH); 
     }
   }
 }
@@ -107,11 +110,11 @@ void turn_left() {
 void turn_right() {
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      analogWrite(control[i][0], 0);
-      analogWrite(control[i][1], 255);
+      analogWrite(control[i][0], LOW);
+      analogWrite(control[i][1], HIGH);
     } else {
-      analogWrite(control[i][0], 255);
-      analogWrite(control[i][1], 0); 
+      analogWrite(control[i][0], HIGH);
+      analogWrite(control[i][1], LOW); 
     }
   }
 }
