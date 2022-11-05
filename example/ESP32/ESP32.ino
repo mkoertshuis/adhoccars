@@ -162,6 +162,7 @@ void loop()
     delay(1000);
     rotateRight();
     delay(1000);
+    Serial.println("starting over");
 
     //data will be sent to server
     // uint8_t buffer[50] = "hello world";

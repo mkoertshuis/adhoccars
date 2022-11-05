@@ -1,8 +1,11 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define LOW 0
-#define HIGH 255
+#define DEBUG
+
+// #define LOW 0
+// #define HIGH 255
+# define PAUSE 300
 
 const char * networkName = "rssi-cars";
 const int udpPort = 3333;
@@ -10,14 +13,14 @@ boolean connected = false;
 WiFiUDP udp;
 char packet[255];
 
-const int rf1 = 19;
-const int rf2 = 18;
-const int lf1 = 5;
-const int lf2 = 17;
-const int rb1 = 14;
-const int rb2 = 15;
-const int lb1 = 16;
-const int lb2 = 4;
+#define rf1 19
+#define rf2 18
+#define lf1 5
+#define lf2 17
+#define rb1 14
+#define rb2 15
+#define lb1 16
+#define lb2 4
 const int control[4][2] = { {rf1, rf2}, {rb1, rb2}, {lf1, lf2}, {lb1, lb2} }; 
 
 // Packet format:
@@ -73,48 +76,56 @@ void init_pins() {
   pinMode(lb2, OUTPUT);
 }
 
-void stop() {
+void rotorstop() {
   for ( int i = 0; i < 4; ++i ) {
-    for ( int j = 0; i < 2; ++j ) {
-      analogWrite(control[i][j], LOW);
+    for ( int j = 0; j < 2; ++j ) {
+      digitalWrite(control[i][j], LOW);
     }
   }
 }
 
 void move_forward() {
-  for ( int i = 0; i < 4; ++i ) {
-    analogWrite(control[i][0], HIGH);
-    analogWrite(control[i][1], LOW);
-  }
+   rotorstop();
+   delay(PAUSE);
+   for ( int i = 0; i < 4; ++i ) {
+     digitalWrite(control[i][0], HIGH);
+     digitalWrite(control[i][1], LOW);
+   }
 }
 
 void move_back() {
+  rotorstop();
+  delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
-    analogWrite(control[i][0], LOW);
-    analogWrite(control[i][1], HIGH);
+    digitalWrite(control[i][0], LOW);
+    digitalWrite(control[i][1], HIGH);
   }
 }
 
 void turn_left() {
+  rotorstop();
+  delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      analogWrite(control[i][0], HIGH);
-      analogWrite(control[i][1], LOW);
+      digitalWrite(control[i][0], HIGH);
+      digitalWrite(control[i][1], LOW);
     } else {
-      analogWrite(control[i][0], LOW);
-      analogWrite(control[i][1], HIGH); 
+      digitalWrite(control[i][0], LOW);
+      digitalWrite(control[i][1], HIGH); 
     }
   }
 }
 
 void turn_right() {
+  rotorstop();
+  delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      analogWrite(control[i][0], LOW);
-      analogWrite(control[i][1], HIGH);
+      digitalWrite(control[i][0], LOW);
+      digitalWrite(control[i][1], HIGH);
     } else {
-      analogWrite(control[i][0], HIGH);
-      analogWrite(control[i][1], LOW); 
+      digitalWrite(control[i][0], HIGH);
+      digitalWrite(control[i][1], LOW); 
     }
   }
 }
@@ -134,7 +145,7 @@ void control_handler(uint8_t direction) {
       turn_right();
       break;
     default: // break
-      stop();
+      rotorstop();
       break;
   }
 }
@@ -160,13 +171,19 @@ void setup(){
   // Initilize hardware serial:
   Serial.begin(115200);
   
+  #ifndef DEBUG
   //Connect to the WiFi network
   connectToWiFi(networkName);
+  #endif
 }
 
 void loop(){
   //only send data when connected
+  #ifdef DEBUG
+  connected = true;
+  #endif
   if(connected){
+    #ifndef DEBUG
     //Send a packet
     udp.beginPacket(WiFi.broadcastIP(), udpPort);
     udp.printf("Seconds since boot: %lu", millis()/1000);
@@ -177,6 +194,18 @@ void loop(){
     // ESP.getEfuseMac()
 
     int packetSize = udp.parsePacket();
+    #endif
+    #ifdef DEBUG
+    uint8_t key;
+    key = Serial.read();
+    if ((key > 48) && (key <= 53)) {
+      key = key - 48;
+      packet[0] = (char) 1;   // controll op code
+      packet[1] = (char) key; // code for control
+      packet[2] = '\n';       // end of line
+      packet_handler(packet);
+    }
+    #else
     // udp.remoteIP()
     if (packetSize) {
       Serial.print("Received packet! Size: ");
@@ -189,6 +218,7 @@ void loop(){
       Serial.println(packet);
       packet_handler(packet);
     }
+    #endif
   }
   //Wait for 1 second
   delay(1000);
