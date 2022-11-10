@@ -3,37 +3,46 @@
 #include <WiFiAP.h>
 
 const char *ssid = "rssi-cars";
+const int udpPort = 3333;
+
+byte packet[255];
+byte serial[255];
 WiFiUDP udp;
-char incomingPacket[255];  // buffer for incoming packets
+
+// Packet format:
+// Opcode [1 b]   | Arguments [n b]
+// ---------------|----------------
+// Control (0x01) | Direction (1 b)
+// Leader (0x02)  | Fuse MAC (8 b)
+// Kill (0x03)    | (0 b)
+// RSSI (0x04)    | Fuse MAC (8 b) RSSI value (1 b)
+// Devices (0x10) | Amount [1 b]
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  
   Serial.begin(115200);
-  Serial.println();
-  Serial.println("Configuring access point...");
 
   WiFi.softAP(ssid);
-  IPAddress ip = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(ip);
-  udp.begin(3333);
-
-  Serial.println("Server started");
+  udp.begin(WiFi.softAPIP(),udpPort);
 }
 
 void loop() {
-  int packetSize = udp.parsePacket();
-  if (packetSize)
-  {
-    // receive incoming UDP packets
-    // Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
-    int len = udp.read(incomingPacket, 255);
-    if (len > 0)
-    {
-      incomingPacket[len] = 0;
-    }
-    Serial.printf("UDP packet contents: %s\n", incomingPacket);
+  Serial.write(0x10);
+  Serial.write(WiFi.softAPgetStationNum());
+
+  if(Serial.available() > 0) {
+    int len = Serial.available();
+    Serial.readBytes(serial, len);
+
+    udp.beginPacket(WiFi.broadcastIP(), udpPort);
+    udp.write(serial, len);
+    udp.endPacket();
   }
-  delay(1000);
+
+  int packetSize = udp.parsePacket();
+  if (packetSize > 0) {
+    udp.read(packet, packetSize);
+    Serial.write(packet, packetSize);
+  }
+
+  delay(50);
 }
