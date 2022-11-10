@@ -386,17 +386,6 @@ void loop(){
     // }
     // Serial.println();
     packet_handler(packet);
-
-    if(!connected || !leader_assigned){
-      Serial.print("Connection: ");
-      Serial.print(connected);
-      Serial.print(" Leader assigned: ");
-      Serial.println(leader_assigned);
-      
-      //Wait for 1 second
-      delay(1000);
-      return;
-    }
   }
   
   //only send data when connected
@@ -423,6 +412,7 @@ void loop(){
     }      
     
     #endif
+  }
 
     
     // if (distance_delta > distance + threshold) {
@@ -445,5 +435,4 @@ void loop(){
     //     prev_state = STOP;
     //   } 
     // }
-  }
 }
