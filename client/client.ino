@@ -49,11 +49,13 @@ hw_timer_t *timer = NULL;
 enum movement {
   FORWARD,
   BACK,
+  LEFT,
+  RIGHT,
   STOP
 };
 
 enum movement prev_state;
-
+enum movement control_state = STOP; // Used for control
 
 // Packet format:
 // Opcode [1 b]   | Arguments [n b]
@@ -200,19 +202,32 @@ void set_rssi_self(int8_t rssi) {
 void control_handler(uint8_t direction) {
   switch (direction) {
     case 1: // forward
-      move_forward();
+      if (control_state != FORWARD) {
+        move_forward();
+        control_state = FORWARD;
+      }
       break;
     case 2: // back
-      move_back();
+      if (control_state != BACK) {
+        move_back();
+        control_state = BACK;
+      }
       break;
     case 3: // left
-      turn_left();
+      if (control_state != LEFT) {
+        turn_left();
+        control_state = LEFT;
+      }
       break;
     case 4: // right
-      turn_right();
+      if (control_state != RIGHT) {
+        turn_right();
+        control_state = RIGHT;
+      }
       break;
     default: // break
       rotorstop();
+      control_state = STOP;
       break;
   }
 }
