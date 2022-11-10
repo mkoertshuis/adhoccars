@@ -8,11 +8,12 @@
 // #define HIGH 255
 # define PAUSE 300
 # define TIMER_DELAY 200
+# define TIMER_DELAY2 1000
 
 const char * networkName = "rssi-cars";
 #define measurements 5
-#define threshold 3
-#define distance 10
+#define threshold 0.1
+#define distance 0.3
 #define measured_power -50
 #define env_val 2
 
@@ -45,6 +46,7 @@ uint64_t mac_leader = 0;
 uint64_t mac_self = 0;
 
 hw_timer_t *timer = NULL;
+hw_timer_t *timer2 = NULL;
 
 enum movement {
   FORWARD,
@@ -88,8 +90,14 @@ void onTimer(){
     send_rssi();
     timerRestart(timer);   
   }
-  
-//  send_rssi();
+}
+
+bool onTimer2(){
+  if (timerReadMilis(timer2) >= TIMER_DELAY2) {
+    timerRestart(timer2);
+    return true;
+  }
+  return false;
 }
 
 void connectToWiFi(const char * ssid){
@@ -192,11 +200,12 @@ void turn_right() {
 }
 
 void set_rssi_leader(int8_t rssi) {
-  rssi_leader_val = rssi;
+
+  rssi_leader_val += 0.2 * (rssi - rssi_leader_val);
 }
 
-void set_rssi_self(int8_t rssi) {
-  rssi_self_val = rssi;
+void set_rssi_self() {
+  rssi_self_val += 0.01 * (WiFi.RSSI() - rssi_self_val);
 }
 
 void control_handler(uint8_t direction) {
@@ -282,6 +291,12 @@ void packet_handler(uint8_t * packet) {
       leader_handler(mac_packet);
       break;
     }
+    case 3: // KILL
+    {
+      leader_assigned = false;
+      leader = false;
+      rssi_received = false;
+    }    
     case 4: // RSSI
     {
       mac_packet = 0;
@@ -309,11 +324,18 @@ void packet_handler(uint8_t * packet) {
   }
 }
 
-long get_distance_to_leader() {
+float get_distance_to_leader() {
   // distance = 10^((Measured Power - Instant RSSI)/10*N)
-  long leader_to_ap = pow(10, ((measured_power - rssi_leader_val) / (10 * env_val)));
-  long follower_to_ap = pow(10, ((measured_power - rssi_self_val) / (10 * env_val)));
+  float leader_to_ap = pow(10, ((measured_power - (float) rssi_leader_val) / (10 * env_val)));
+  float follower_to_ap = pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
 
+  #ifdef DEBUG
+  Serial.print("Distance from leader to AP: ");  
+  Serial.print(leader_to_ap);
+  Serial.print(", Distance from follower to AP: ");  
+  Serial.println(follower_to_ap);
+  #endif
+  
   return abs(follower_to_ap - leader_to_ap);
 }
 
@@ -330,13 +352,18 @@ void setup(){
   //Connect to the WiFi network
   connectToWiFi(networkName);
   #ifdef DEBUG
-  leader_assigned = true;
-  leader = true;
+  // leader_assigned = true;
+  // leader = true;
   #endif
   Serial.println("Starting timer...");
   timer = timerBegin(0, 80, true);
   timerStart(timer);
   Serial.println("Timer started!");
+
+  Serial.println("Starting timer2...");
+  timer2 = timerBegin(1, 80, true);
+  timerStart(timer2);
+  Serial.println("Timer2 started!");  
 }
 
 void loop(){
@@ -345,10 +372,19 @@ void loop(){
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
+<<<<<<< HEAD
     #ifdef DEBUG
     Serial.print("Received packet! Size: ");
     Serial.println(packetSize); 
     #endif
+=======
+
+    #ifdef DEBUG
+    // Serial.print("Received packet! Size: ");
+    // Serial.println(packetSize);
+    #endif
+
+>>>>>>> origin/client_follower
     int len = udp.read(packet, 255);
     if (len > 0)
     {
@@ -371,29 +407,52 @@ void loop(){
       return;
     }
   }
+  
+  //only send data when connected
+  if(!connected || !leader_assigned){
+    if (onTimer2()){
+      Serial.print("Connection: ");
+      Serial.print(connected);
+      Serial.print(" Leader assigned: ");
+      Serial.println(leader_assigned);
+    }
+    return;
+  }
+
+  set_rssi_self();
 
   // If this robot is the follower and we have received our initial RSSI value
-  if (!leader && rssi_received) {
-    long distance_delta = get_distance_to_leader();
-    if (distance_delta > distance + threshold) {
-      if (prev_state != FORWARD) {
-        move_forward();
-        prev_state = FORWARD;
-      }
-    }
+  if (!leader && rssi_received && leader_assigned) {
+    float distance_delta = get_distance_to_leader();
 
-    else if (distance_delta < distance + threshold) {
-      if (prev_state != BACK) {
-        move_back();
-        prev_state = BACK;
-      }
-    }
+    #ifdef DEBUG
+    if (onTimer2()){
+      Serial.print("Distance to leader: ");
+      Serial.println(distance_delta);
+    }      
+    
+    #endif
 
-    else {
-      if (prev_state != STOP) {
-        rotorstop();
-        prev_state = STOP;
-      } 
-    }
+    
+    // if (distance_delta > distance + threshold) {
+    //   if (prev_state != FORWARD) {
+    //     move_forward();
+    //     prev_state = FORWARD;
+    //   }
+    // }  
+
+    // else if (distance_delta < distance + threshold) {
+    //   if (prev_state != BACK) {
+    //     move_back();
+    //     prev_state = BACK;
+    //   }
+    // }
+
+    // else {
+    //   if (prev_state != STOP) {
+    //     rotorstop();
+    //     prev_state = STOP;
+    //   } 
+    // }
   }
 }
