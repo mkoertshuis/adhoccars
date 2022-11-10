@@ -372,19 +372,10 @@ void loop(){
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
-<<<<<<< HEAD
     #ifdef DEBUG
     Serial.print("Received packet! Size: ");
     Serial.println(packetSize); 
     #endif
-=======
-
-    #ifdef DEBUG
-    // Serial.print("Received packet! Size: ");
-    // Serial.println(packetSize);
-    #endif
-
->>>>>>> origin/client_follower
     int len = udp.read(packet, 255);
     if (len > 0)
     {
