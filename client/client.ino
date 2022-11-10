@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <math.h>
 
 #define DEBUG
 
@@ -11,6 +12,8 @@ const char * networkName = "rssi-cars";
 #define measurements 5
 #define threshold 3
 #define distance 10
+#define measured_power 40
+#define env_val 2
 
 const int udpPort = 3333;
 boolean connected = false;
@@ -250,6 +253,15 @@ void packet_handler(char * packet) {
   }
 }
 
+long get_distance_to_leader() {
+  // distance = 10^((Measured Power - Instant RSSI)/10*N)
+  long leader_to_ap = pow(10, ((measured_power - rssi_leader_val) / (10 * env_val)));
+  long follower_to_ap = pow(10, ((measured_power - rssi_self_val) / (10 * env_val)));
+
+  return abs(follower_to_ap - leader_to_ap);
+
+}
+
 void setup(){
   init_pins();
 
@@ -273,8 +285,8 @@ void loop(){
     Serial.print(" Leader assigned: ");
     Serial.println(leader_assigned);
     udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    udp.printf(mac_self);
-    udp.printf(WiFi.RSSI());
+    udp.printf("MAC: %d", mac_self);
+    udp.printf(", RSSI: %d\n", WiFi.RSSI());
     udp.endPacket();
 
     //Wait for 1 second
@@ -300,24 +312,23 @@ void loop(){
   if (leader) {
     //Send a packet
     udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    udp.printf("MAC: %d", mac_self);
-    udp.printf("RSSI: %d", WiFi.RSSI());
-
+    udp.printf("4%d%d", mac_self, WiFi.RSSI());
     // udp.write();
     // udp.read();
     udp.endPacket();
   }
 
-  // If this robot is the follower
+  // If this robot is the follower and we have received our initial RSSI value
   if (!leader && rssi_received) {
-    if (rssi_leader_val - rssi_self_val > distance + threshold) {
+    long distance_delta = get_distance_to_leader();
+    if (distance_delta > distance + threshold) {
       if (prev_state != FORWARD) {
         move_forward();
         prev_state = FORWARD;
       }
     }
 
-    else if (rssi_leader_val - rssi_self_val < distance + threshold) {
+    else if (distance_delta < distance + threshold) {
       if (prev_state != BACK) {
         move_back();
         prev_state = BACK;
@@ -326,7 +337,7 @@ void loop(){
 
     else {
       if (prev_state != STOP) {
-        stop();
+        rotorstop();
         prev_state = STOP;
       } 
     }
