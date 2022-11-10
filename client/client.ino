@@ -198,11 +198,12 @@ void turn_right() {
 }
 
 void set_rssi_leader(int8_t rssi) {
-  rssi_leader_val = rssi;
+
+  rssi_leader_val += 0.2 * (rssi - rssi_leader_val);
 }
 
-void set_rssi_self(int8_t rssi) {
-  rssi_self_val = rssi;
+void set_rssi_self() {
+  rssi_self_val += 0.01 * (WiFi.RSSI() - rssi_self_val);
 }
 
 void control_handler(uint8_t direction) {
@@ -383,6 +384,8 @@ void loop(){
     }
     return;
   }
+
+  set_rssi_self();
 
   // If this robot is the follower and we have received our initial RSSI value
   if (!leader && rssi_received && leader_assigned) {
