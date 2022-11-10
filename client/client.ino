@@ -396,8 +396,8 @@ void loop(){
   set_rssi_self();
 
   // If this robot is the follower and we have received our initial RSSI value
-  // if (!leader && rssi_received && leader_assigned && onTimer2()) {
-  if (!leader && rssi_received && leader_assigned) {
+  if (!leader && rssi_received && leader_assigned && onTimer2()) {
+  // if (!leader && rssi_received && leader_assigned) {
     float distance_delta = get_distance_to_leader();
 
     #ifdef DEBUG
