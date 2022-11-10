@@ -66,15 +66,16 @@ enum movement prev_state;
 void send_rssi() {
   uint8_t buff[10];
   buff[0] = (uint8_t) 0x04;
-  buff[1] = (uint8_t) mac_self << 56;
-  buff[2] = (uint8_t) mac_self << 48;
-  buff[3] = (uint8_t) mac_self << 40;
-  buff[4] = (uint8_t) mac_self << 32;
-  buff[5] = (uint8_t) mac_self << 24;
-  buff[6] = (uint8_t) mac_self << 16;
-  buff[7] = (uint8_t) mac_self << 8;
-  buff[8] = (uint8_t) mac_self << 0;
+  buff[1] = (uint8_t) (mac_self >> 56) & 0xFF;
+  buff[2] = (uint8_t) (mac_self >> 48) & 0xFF; 
+  buff[3] = (uint8_t) (mac_self >> 40) & 0xFF; 
+  buff[4] = (uint8_t) (mac_self >> 32) & 0xFF; 
+  buff[5] = (uint8_t) (mac_self >> 24) & 0xFF; 
+  buff[6] = (uint8_t) (mac_self >> 16) & 0xFF; 
+  buff[7] = (uint8_t) (mac_self >> 8) & 0xFF; 
+  buff[8] = (uint8_t) (mac_self >> 0) & 0xFF; 
   buff[9] = (uint8_t) WiFi.RSSI();
+  
   udp.beginPacket(WiFi.broadcastIP(), udpPort);
   udp.write(buff, 10);
   udp.endPacket();
