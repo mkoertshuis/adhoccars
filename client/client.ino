@@ -62,16 +62,27 @@ enum movement prev_state;
 // Leader (0x02)  | Fuse MAC (8 b)
 // Kill (0x03)    | (0 b)
 
+void send_rssi() {
+  Serial.println("Interrupt!");
+  uint8_t buff[10];
+  buff[0] = (uint8_t) 0x04;
+  buff[1] = (uint8_t) mac_self << 56;
+  buff[2] = (uint8_t) mac_self << 48;
+  buff[3] = (uint8_t) mac_self << 40;
+  buff[4] = (uint8_t) mac_self << 32;
+  buff[5] = (uint8_t) mac_self << 24;
+  buff[6] = (uint8_t) mac_self << 16;
+  buff[7] = (uint8_t) mac_self << 8;
+  buff[8] = (uint8_t) mac_self << 0;
+  buff[9] = (uint8_t) WiFi.RSSI();
+  udp.beginPacket(WiFi.broadcastIP(), udpPort);
+  udp.write(buff, 10);
+  udp.endPacket();
+}
+
 void IRAM_ATTR onTimer(){
   // If this robot is the leader
-  if (leader) {
-    //Send a packet
-    udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    // udp.printf("4%d%d", mac_self, WiFi.RSSI());
-    // udp.write();
-    // udp.read();
-    udp.endPacket();
-  }
+  send_rssi();
 }
 
 void connectToWiFi(const char * ssid){
@@ -273,24 +284,6 @@ long get_distance_to_leader() {
   return abs(follower_to_ap - leader_to_ap);
 }
 
-void send_rssi() {
-  char buffer[10];
-  buffer[0] = 0x04;
-  buffer[1] = mac_self << 56;
-  buffer[2] = mac_self << 48;
-  buffer[3] = mac_self << 40;
-  buffer[4] = mac_self << 32;
-  buffer[5] = mac_self << 24;
-  buffer[6] = mac_self << 16;
-  buffer[7] = mac_self << 8;
-  buffer[8] = mac_self << 0;
-  buffer[9] = WiFi.RSSI();
-  udp.beginPacket(WiFi.broadcastIP(), udpPort);
-  udp.write(buffer, 10);
-  udp.endPacket();
-
-}
-
 void init_timer(){
   // Use 1st timer of 4 (counted from zero).
   // Set 80 divider for prescaler
@@ -321,7 +314,7 @@ void setup(){
   leader_assigned = true;
   leader = true;
   #endif
-  init_timer();
+//  init_timer();
 }
 
 void loop(){
@@ -340,6 +333,8 @@ void loop(){
     delay(1000);
     return;
   }
+
+//  send_rssi();
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
