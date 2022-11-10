@@ -22,7 +22,7 @@ boolean leader_assigned = false;
 boolean leader = false;
 boolean rssi_received = false;
 WiFiUDP udp;
-char packet[255];
+uint8_t packet[255];
 
 #define rf1 19
 #define rf2 18
@@ -189,11 +189,11 @@ void turn_right() {
   }
 }
 
-void set_rssi_leader(uint8_t rssi) {
+void set_rssi_leader(int8_t rssi) {
   rssi_leader_val = rssi;
 }
 
-void set_rssi_self(uint8_t rssi) {
+void set_rssi_self(int8_t rssi) {
   rssi_self_val = rssi;
 }
 
@@ -217,7 +217,7 @@ void control_handler(uint8_t direction) {
   }
 }
 
-void rssi_handler(uint64_t mac, uint8_t rssi) {
+void rssi_handler(uint64_t mac, int8_t rssi) {
   if (mac == mac_leader) {
     set_rssi_leader(rssi);
     rssi_received = true;
@@ -235,7 +235,7 @@ void leader_handler(uint64_t mac) {
   leader_assigned = true;
 }
 
-void packet_handler(char * packet) {
+void packet_handler(uint8_t * packet) {
   // Change the char of the packet to a byte for easier handling
   uint8_t op = (uint8_t) packet[0];
   switch (op) {
@@ -258,6 +258,12 @@ void packet_handler(char * packet) {
       mac_packet += (uint64_t) packet[6] << 16;
       mac_packet += (uint64_t) packet[7] << 8;
       mac_packet += (uint64_t) packet[8];
+
+      #ifdef DEBUG
+      Serial.print("Leader: ");
+      Serial.println(mac_packet);
+      #endif
+
       leader_handler(mac_packet);
       break;
     }
@@ -272,7 +278,14 @@ void packet_handler(char * packet) {
       mac_packet += (uint64_t) packet[6] << 16;
       mac_packet += (uint64_t) packet[7] << 8;
       mac_packet += (uint64_t) packet[8];
-      uint8_t rssi = (uint8_t) packet[9];
+      int8_t rssi = (int8_t) packet[9];
+      #ifdef DEBUG
+      Serial.print("RSSI packet received from: ");
+      Serial.print(mac_packet);
+      Serial.print(", RSSI: ");
+      Serial.println(rssi);
+      #endif
+
       rssi_handler(mac_packet, rssi);
       break;
     }
@@ -295,6 +308,9 @@ void setup(){
   // Initilize hardware serial:
   Serial.begin(115200);
   mac_self = ESP.getEfuseMac();
+  Serial.print("My MAC: ");
+  Serial.println(mac_self);
+
 
   //Connect to the WiFi network
   connectToWiFi(networkName);
@@ -315,11 +331,7 @@ void loop(){
     Serial.print(connected);
     Serial.print(" Leader assigned: ");
     Serial.println(leader_assigned);
-//    udp.beginPacket(WiFi.broadcastIP(), udpPort);
-//    udp.printf("MAC: %d", mac_self);
-//    udp.printf(", RSSI: %d\n", WiFi.RSSI());
-//    udp.endPacket();
-
+    
     //Wait for 1 second
     delay(1000);
     return;
@@ -336,7 +348,10 @@ void loop(){
     {
       packet[len] = '\0';
     }
-    Serial.println(packet);
+    // for (int i = 1; i < 9; i++) {
+    //   Serial.print(packet[i]);
+    // }
+    // Serial.println();
     packet_handler(packet);
   }
 
