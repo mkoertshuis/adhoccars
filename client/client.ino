@@ -13,7 +13,7 @@ const char * networkName = "rssi-cars";
 #define measurements 5
 #define threshold 3
 #define distance 10
-#define measured_power 40
+#define measured_power -50
 #define env_val 2
 
 const int udpPort = 3333;
