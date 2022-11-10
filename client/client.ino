@@ -400,25 +400,25 @@ void loop(){
     #endif
 
     
-    if (distance_delta > distance + threshold) {
-      if (prev_state != FORWARD) {
-        move_forward();
-        prev_state = FORWARD;
-      }
-    }  
+    // if (distance_delta > distance + threshold) {
+    //   if (prev_state != FORWARD) {
+    //     move_forward();
+    //     prev_state = FORWARD;
+    //   }
+    // }  
 
-    else if (distance_delta < distance + threshold) {
-      if (prev_state != BACK) {
-        move_back();
-        prev_state = BACK;
-      }
-    }
+    // else if (distance_delta < distance + threshold) {
+    //   if (prev_state != BACK) {
+    //     move_back();
+    //     prev_state = BACK;
+    //   }
+    // }
 
-    else {
-      if (prev_state != STOP) {
-        rotorstop();
-        prev_state = STOP;
-      } 
-    }
+    // else {
+    //   if (prev_state != STOP) {
+    //     rotorstop();
+    //     prev_state = STOP;
+    //   } 
+    // }
   }
 }
