@@ -62,6 +62,18 @@ enum movement prev_state;
 // Leader (0x02)  | Fuse MAC (8 b)
 // Kill (0x03)    | (0 b)
 
+void IRAM_ATTR onTimer(){
+  // If this robot is the leader
+  if (leader) {
+    //Send a packet
+    udp.beginPacket(WiFi.broadcastIP(), udpPort);
+    // udp.printf("4%d%d", mac_self, WiFi.RSSI());
+    // udp.write();
+    // udp.read();
+    udp.endPacket();
+  }
+}
+
 void connectToWiFi(const char * ssid){
   Serial.println("Connecting to WiFi network: " + String(ssid));
 
@@ -262,6 +274,23 @@ long get_distance_to_leader() {
 
 }
 
+void init_timer(){
+  // Use 1st timer of 4 (counted from zero).
+  // Set 80 divider for prescaler
+  timer = timerBegin(0, 80, true);
+
+  // Attach onTimer function to our timer.
+  timerAttachInterrupt(timer, &onTimer, true);
+
+  // Set alarm to call onTimer function (value in microseconds).
+  // Repeat the alarm (third parameter)
+  //trigger every 200ms
+  timerAlarmWrite(timer, 200000, true);
+
+  // Start an alarm
+  timerAlarmEnable(timer);
+}
+
 void setup(){
   init_pins();
 
@@ -275,6 +304,7 @@ void setup(){
   leader_assigned = true;
   leader = true;
   #endif
+  init_timer();
 }
 
 void loop(){
@@ -284,10 +314,10 @@ void loop(){
     Serial.print(connected);
     Serial.print(" Leader assigned: ");
     Serial.println(leader_assigned);
-    udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    udp.printf("MAC: %d", mac_self);
-    udp.printf(", RSSI: %d\n", WiFi.RSSI());
-    udp.endPacket();
+//    udp.beginPacket(WiFi.broadcastIP(), udpPort);
+//    udp.printf("MAC: %d", mac_self);
+//    udp.printf(", RSSI: %d\n", WiFi.RSSI());
+//    udp.endPacket();
 
     //Wait for 1 second
     delay(1000);
@@ -305,17 +335,6 @@ void loop(){
     }
     Serial.println(packet);
     packet_handler(packet);
-  }
-
-
-  // If this robot is the leader
-  if (leader) {
-    //Send a packet
-    udp.beginPacket(WiFi.broadcastIP(), udpPort);
-    udp.printf("4%d%d", mac_self, WiFi.RSSI());
-    // udp.write();
-    // udp.read();
-    udp.endPacket();
   }
 
   // If this robot is the follower and we have received our initial RSSI value
