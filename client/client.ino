@@ -271,6 +271,23 @@ long get_distance_to_leader() {
   long follower_to_ap = pow(10, ((measured_power - rssi_self_val) / (10 * env_val)));
 
   return abs(follower_to_ap - leader_to_ap);
+}
+
+void send_rssi() {
+  char buffer[10];
+  buffer[0] = 0x04;
+  buffer[1] = mac_self << 56;
+  buffer[2] = mac_self << 48;
+  buffer[3] = mac_self << 40;
+  buffer[4] = mac_self << 32;
+  buffer[5] = mac_self << 24;
+  buffer[6] = mac_self << 16;
+  buffer[7] = mac_self << 8;
+  buffer[8] = mac_self << 0;
+  buffer[9] = WiFi.RSSI();
+  udp.beginPacket(WiFi.broadcastIP(), udpPort);
+  udp.write(buffer, 10);
+  udp.endPacket();
 
 }
 
