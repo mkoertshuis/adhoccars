@@ -302,10 +302,16 @@ void packet_handler(uint8_t * packet) {
   }
 }
 
-long get_distance_to_leader() {
+float get_distance_to_leader() {
   // distance = 10^((Measured Power - Instant RSSI)/10*N)
-  long leader_to_ap = pow(10, ((measured_power - rssi_leader_val) / (10 * env_val)));
-  long follower_to_ap = pow(10, ((measured_power - rssi_self_val) / (10 * env_val)));
+  float leader_to_ap = pow(10, ((measured_power - (float) rssi_leader_val) / (10 * env_val)));
+  float follower_to_ap = pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
+
+  #ifdef DEBUG
+  Serial.print("Distance from leader to AP: ");  
+  Serial.print(leader_to_ap);
+  Serial.print(", Distance from follower to AP: ");  
+  Serial.println(follower_to_ap);
 
   return abs(follower_to_ap - leader_to_ap);
 }
@@ -373,7 +379,7 @@ void loop(){
 
   // If this robot is the follower and we have received our initial RSSI value
   if (!leader && rssi_received && leader_assigned) {
-    long distance_delta = get_distance_to_leader();
+    float distance_delta = get_distance_to_leader();
 
     #ifdef DEBUG
     if (onTimer2()){
@@ -389,7 +395,7 @@ void loop(){
     //     move_forward();
     //     prev_state = FORWARD;
     //   }
-    // }
+    // }  
 
     // else if (distance_delta < distance + threshold) {
     //   if (prev_state != BACK) {
