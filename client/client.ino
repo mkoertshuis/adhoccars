@@ -2,7 +2,7 @@
 #include <WiFiUdp.h>
 #include <math.h>
 
-#define DEBUG
+//#define DEBUG
 
 // #define LOW 0
 // #define HIGH 255
@@ -340,24 +340,15 @@ void setup(){
 }
 
 void loop(){
-  //only send data when connected
-  if(!connected || !leader_assigned){
-    Serial.print("Connection: ");
-    Serial.print(connected);
-    Serial.print(" Leader assigned: ");
-    Serial.println(leader_assigned);
-    
-    //Wait for 1 second
-    delay(1000);
-    return;
-  }
-
   onTimer();
+  //only send data when connected
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
+    #ifdef DEBUG
     Serial.print("Received packet! Size: ");
     Serial.println(packetSize); 
+    #endif
     int len = udp.read(packet, 255);
     if (len > 0)
     {
@@ -368,6 +359,17 @@ void loop(){
     // }
     // Serial.println();
     packet_handler(packet);
+
+    if(!connected || !leader_assigned){
+      Serial.print("Connection: ");
+      Serial.print(connected);
+      Serial.print(" Leader assigned: ");
+      Serial.println(leader_assigned);
+      
+      //Wait for 1 second
+      delay(1000);
+      return;
+    }
   }
 
   // If this robot is the follower and we have received our initial RSSI value
