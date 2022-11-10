@@ -7,6 +7,7 @@
 // #define LOW 0
 // #define HIGH 255
 # define PAUSE 300
+# define TIMER_DELAY 200
 
 const char * networkName = "rssi-cars";
 #define measurements 5
@@ -63,7 +64,6 @@ enum movement prev_state;
 // Kill (0x03)    | (0 b)
 
 void send_rssi() {
-  Serial.println("Interrupt!");
   uint8_t buff[10];
   buff[0] = (uint8_t) 0x04;
   buff[1] = (uint8_t) mac_self << 56;
@@ -80,9 +80,13 @@ void send_rssi() {
   udp.endPacket();
 }
 
-void IRAM_ATTR onTimer(){
-  // If this robot is the leader
-  send_rssi();
+void onTimer(){
+  if (timerReadMilis(timer) >= TIMER_DELAY) {
+    send_rssi();
+    timerRestart(timer);   
+  }
+  
+//  send_rssi();
 }
 
 void connectToWiFi(const char * ssid){
@@ -284,23 +288,6 @@ long get_distance_to_leader() {
   return abs(follower_to_ap - leader_to_ap);
 }
 
-void init_timer(){
-  // Use 1st timer of 4 (counted from zero).
-  // Set 80 divider for prescaler
-  timer = timerBegin(0, 80, true);
-
-  // Attach onTimer function to our timer.
-  timerAttachInterrupt(timer, &onTimer, true);
-
-  // Set alarm to call onTimer function (value in microseconds).
-  // Repeat the alarm (third parameter)
-  //trigger every 200ms
-  timerAlarmWrite(timer, 200000, true);
-
-  // Start an alarm
-  timerAlarmEnable(timer);
-}
-
 void setup(){
   init_pins();
 
@@ -314,7 +301,10 @@ void setup(){
   leader_assigned = true;
   leader = true;
   #endif
-//  init_timer();
+  Serial.println("Starting timer...");
+  timer = timerBegin(0, 80, true);
+  timerStart(timer);
+  Serial.println("Timer started!");
 }
 
 void loop(){
@@ -334,7 +324,7 @@ void loop(){
     return;
   }
 
-//  send_rssi();
+  onTimer();
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
