@@ -8,11 +8,12 @@
 // #define HIGH 255
 # define PAUSE 300
 # define TIMER_DELAY 200
+# define TIMER_DELAY2 1000
 
 const char * networkName = "rssi-cars";
 #define measurements 5
-#define threshold 3
-#define distance 10
+#define threshold 0.1
+#define distance 0.3
 #define measured_power -50
 #define env_val 2
 
@@ -45,6 +46,7 @@ uint64_t mac_leader = 0;
 uint64_t mac_self = 0;
 
 hw_timer_t *timer = NULL;
+hw_timer_t *timer2 = NULL;
 
 enum movement {
   FORWARD,
@@ -86,8 +88,14 @@ void onTimer(){
     send_rssi();
     timerRestart(timer);   
   }
-  
-//  send_rssi();
+}
+
+bool onTimer2(){
+  if (timerReadMilis(timer2) >= TIMER_DELAY2) {
+    timerRestart(timer2);
+    return true;
+  }
+  return false;
 }
 
 void connectToWiFi(const char * ssid){
@@ -315,34 +323,31 @@ void setup(){
   //Connect to the WiFi network
   connectToWiFi(networkName);
   #ifdef DEBUG
-  leader_assigned = true;
-  leader = true;
+  // leader_assigned = true;
+  // leader = true;
   #endif
   Serial.println("Starting timer...");
   timer = timerBegin(0, 80, true);
   timerStart(timer);
   Serial.println("Timer started!");
+
+  Serial.println("Starting timer2...");
+  timer2 = timerBegin(1, 80, true);
+  timerStart(timer2);
+  Serial.println("Timer2 started!");  
 }
 
 void loop(){
-  //only send data when connected
-  if(!connected || !leader_assigned){
-    Serial.print("Connection: ");
-    Serial.print(connected);
-    Serial.print(" Leader assigned: ");
-    Serial.println(leader_assigned);
-    
-    //Wait for 1 second
-    delay(1000);
-    return;
-  }
-
   onTimer();
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
-    Serial.print("Received packet! Size: ");
-    Serial.println(packetSize); 
+
+    #ifdef DEBUG
+    // Serial.print("Received packet! Size: ");
+    // Serial.println(packetSize);
+    #endif
+
     int len = udp.read(packet, 255);
     if (len > 0)
     {
@@ -354,29 +359,50 @@ void loop(){
     // Serial.println();
     packet_handler(packet);
   }
+  
+  //only send data when connected
+  if(!connected || !leader_assigned){
+    if (onTimer2()){
+      Serial.print("Connection: ");
+      Serial.print(connected);
+      Serial.print(" Leader assigned: ");
+      Serial.println(leader_assigned);
+    }
+    return;
+  }
 
   // If this robot is the follower and we have received our initial RSSI value
-  if (!leader && rssi_received) {
+  if (!leader && rssi_received && leader_assigned) {
     long distance_delta = get_distance_to_leader();
-    if (distance_delta > distance + threshold) {
-      if (prev_state != FORWARD) {
-        move_forward();
-        prev_state = FORWARD;
-      }
-    }
 
-    else if (distance_delta < distance + threshold) {
-      if (prev_state != BACK) {
-        move_back();
-        prev_state = BACK;
-      }
-    }
+    #ifdef DEBUG
+    if (onTimer2()){
+      Serial.print("Distance to leader: ");
+      Serial.println(distance_delta);
+    }      
+    
+    #endif
 
-    else {
-      if (prev_state != STOP) {
-        rotorstop();
-        prev_state = STOP;
-      } 
-    }
+    
+    // if (distance_delta > distance + threshold) {
+    //   if (prev_state != FORWARD) {
+    //     move_forward();
+    //     prev_state = FORWARD;
+    //   }
+    // }
+
+    // else if (distance_delta < distance + threshold) {
+    //   if (prev_state != BACK) {
+    //     move_back();
+    //     prev_state = BACK;
+    //   }
+    // }
+
+    // else {
+    //   if (prev_state != STOP) {
+    //     rotorstop();
+    //     prev_state = STOP;
+    //   } 
+    // }
   }
 }
