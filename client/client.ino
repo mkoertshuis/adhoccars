@@ -275,6 +275,12 @@ void packet_handler(uint8_t * packet) {
       leader_handler(mac_packet);
       break;
     }
+    case 3: // KILL
+    {
+      leader_assigned = false;
+      leader = false;
+      rssi_received = false;
+    }    
     case 4: // RSSI
     {
       mac_packet = 0;
@@ -312,7 +318,8 @@ float get_distance_to_leader() {
   Serial.print(leader_to_ap);
   Serial.print(", Distance from follower to AP: ");  
   Serial.println(follower_to_ap);
-
+  #endif
+  
   return abs(follower_to_ap - leader_to_ap);
 }
 
@@ -390,25 +397,25 @@ void loop(){
     #endif
 
     
-    // if (distance_delta > distance + threshold) {
-    //   if (prev_state != FORWARD) {
-    //     move_forward();
-    //     prev_state = FORWARD;
-    //   }
-    // }  
+    if (distance_delta > distance + threshold) {
+      if (prev_state != FORWARD) {
+        move_forward();
+        prev_state = FORWARD;
+      }
+    }  
 
-    // else if (distance_delta < distance + threshold) {
-    //   if (prev_state != BACK) {
-    //     move_back();
-    //     prev_state = BACK;
-    //   }
-    // }
+    else if (distance_delta < distance + threshold) {
+      if (prev_state != BACK) {
+        move_back();
+        prev_state = BACK;
+      }
+    }
 
-    // else {
-    //   if (prev_state != STOP) {
-    //     rotorstop();
-    //     prev_state = STOP;
-    //   } 
-    // }
+    else {
+      if (prev_state != STOP) {
+        rotorstop();
+        prev_state = STOP;
+      } 
+    }
   }
 }
