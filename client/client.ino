@@ -435,39 +435,6 @@ void loop() {
     return;
   }
 
-  // // If this robot is the follower and we have received our initial RSSI value
-  // if (!leader && rssi_received && leader_assigned && onTimer2()) {
-  //   // if (!leader && rssi_received && leader_assigned) {
-
-  //   float distance_delta = get_distance_to_leader();
-
-
-  //   #ifdef DEBUG
-  //   Serial.print("Distance to leader: ");
-  //   Serial.println(distance_delta);
-  //   #endif
-
-  //   if (distance_delta > distance + threshold) {
-  //     if (prev_state != FORWARD) {
-  //       move_forward();
-  //       prev_state = FORWARD;
-  //     }
-  //   }
-
-  //   else if (distance_delta < distance + threshold) {
-  //     if (prev_state != BACK) {
-  //       move_back();
-  //       prev_state = BACK;
-  //     }
-  //   }
-
-  //   else {
-  //     if (prev_state != STOP) {
-  //       rotorstop();
-  //       prev_state = STOP;
-  //     }
-  //   }
-  // }
 
   // if (leader_assigned && onTimer2()) {
   if (leader_assigned) {
