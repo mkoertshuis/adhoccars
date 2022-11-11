@@ -7,8 +7,8 @@
 #define LOW 0
 #define HIGH 127
 #define PAUSE 300
-#define TIMER_DELAY 300
-#define TIMER_DELAY2 1000
+#define SEND_DELAY 300
+#define PRINT_DELAY 1000
 
 const char *networkName = "rssi-cars";
 // #define measurements 5
@@ -87,16 +87,23 @@ void send_rssi() {
   udp.endPacket();
 }
 
-void onTimer() {
-  if (timerReadMilis(timer) >= TIMER_DELAY) {
-    set_rssi_self();
+void sendTimer() {
+  if (timerReadMilis(timer) >= SEND_DELAY) {
     send_rssi();
+
+    if (leader_assigned) {
+      float distance_delta = get_distance_to_leader();
+      if (!leader) {
+        follow_leader(distance_delta);
+      }
+    }
+
     timerRestart(timer);
   }
 }
 
-bool onTimer2() {
-  if (timerReadMilis(timer2) >= TIMER_DELAY2) {
+bool printTimer() {
+  if (timerReadMilis(timer2) >= PRINT_DELAY) {
     timerRestart(timer2);
     return true;
   }
@@ -334,18 +341,18 @@ float get_distance_to_leader() {
   float leader_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_leader_val) / (10 * env_val)));
   float follower_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
 
-    if (onTimer2()) {
-      #ifdef DEBUG
-      Serial.print("L: ");
-      Serial.print(leader_to_ap);
-      Serial.print(", F: ");
-      Serial.print(follower_to_ap);
-      Serial.print(", D: ");
-      Serial.print(fabs(follower_to_ap - leader_to_ap));
-      Serial.print(", STATE: ");
-      Serial.println(prev_state);
-      #endif
-    }
+    // if (printTimer()) {
+    #ifdef DEBUG
+    Serial.print("L: ");
+    Serial.print(leader_to_ap);
+    Serial.print(", F: ");
+    Serial.print(follower_to_ap);
+    Serial.print(", D: ");
+    Serial.print(fabs(follower_to_ap - leader_to_ap));
+    Serial.print(", STATE: ");
+    Serial.println(prev_state);
+    #endif
+    // }
 
   return fabs(follower_to_ap - leader_to_ap);
 }
@@ -404,29 +411,21 @@ void follow_leader(float distance_delta) {
 }
 
 void loop() {
-  onTimer();
-  //only send data when connected
+  sendTimer();
+  set_rssi_self();
 
   int packetSize = udp.parsePacket();
   if (packetSize) {
-// #ifdef DEBUG
-//     Serial.print("Received packet! Size: ");
-//     Serial.println(packetSize);
-// #endif
     int len = udp.read(packet, 255);
     if (len > 0) {
       packet[len] = '\0';
     }
-    // for (int i = 1; i < 9; i++) {
-    //   Serial.print(packet[i]);
-    // }
-    // Serial.println();
     packet_handler(packet);
   }
 
   //only send data when connected
   if (!connected || !leader_assigned) {
-    if (onTimer2()) {
+    if (printTimer()) {
       Serial.print("Connection: ");
       Serial.print(connected);
       Serial.print(" Leader assigned: ");
@@ -435,12 +434,10 @@ void loop() {
     return;
   }
 
-
-  // if (leader_assigned && onTimer2()) {
-  if (leader_assigned) {
-    float distance_delta = get_distance_to_leader();
-    if (!leader) {
-      follow_leader(distance_delta);
-    }
-  }
+  // if (leader_assigned) {
+  //   float distance_delta = get_distance_to_leader();
+  //   if (!leader) {
+  //     follow_leader(distance_delta);
+  //   }
+  // }
 }
