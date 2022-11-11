@@ -341,7 +341,9 @@ float get_distance_to_leader() {
       Serial.print(", F: ");
       Serial.print(follower_to_ap);
       Serial.print(", D: ");
-      Serial.println(abs(follower_to_ap - leader_to_ap));
+      Serial.print(abs(follower_to_ap - leader_to_ap));
+      Serial.print(", STATE: ");
+      Serial.println(prev_state);
       #endif
     }
 
@@ -433,39 +435,39 @@ void loop() {
     return;
   }
 
-  // If this robot is the follower and we have received our initial RSSI value
-  if (!leader && rssi_received && leader_assigned && onTimer2()) {
-    // if (!leader && rssi_received && leader_assigned) {
+  // // If this robot is the follower and we have received our initial RSSI value
+  // if (!leader && rssi_received && leader_assigned && onTimer2()) {
+  //   // if (!leader && rssi_received && leader_assigned) {
 
-    float distance_delta = get_distance_to_leader();
+  //   float distance_delta = get_distance_to_leader();
 
 
-    // #ifdef DEBUG
-    // Serial.print("Distance to leader: ");
-    // Serial.println(distance_delta);
-    // #endif
+  //   #ifdef DEBUG
+  //   Serial.print("Distance to leader: ");
+  //   Serial.println(distance_delta);
+  //   #endif
 
-    // if (distance_delta > distance + threshold) {
-    //   if (prev_state != FORWARD) {
-    //     move_forward();
-    //     prev_state = FORWARD;
-    //   }
-    // }
+  //   if (distance_delta > distance + threshold) {
+  //     if (prev_state != FORWARD) {
+  //       move_forward();
+  //       prev_state = FORWARD;
+  //     }
+  //   }
 
-    // else if (distance_delta < distance + threshold) {
-    //   if (prev_state != BACK) {
-    //     move_back();
-    //     prev_state = BACK;
-    //   }
-    // }
+  //   else if (distance_delta < distance + threshold) {
+  //     if (prev_state != BACK) {
+  //       move_back();
+  //       prev_state = BACK;
+  //     }
+  //   }
 
-    // else {
-    //   if (prev_state != STOP) {
-    //     rotorstop();
-    //     prev_state = STOP;
-    //   }
-    // }
-  }
+  //   else {
+  //     if (prev_state != STOP) {
+  //       rotorstop();
+  //       prev_state = STOP;
+  //     }
+  //   }
+  // }
 
   // if (leader_assigned && onTimer2()) {
   if (leader_assigned) {
