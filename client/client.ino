@@ -13,7 +13,7 @@
 const char *networkName = "rssi-cars";
 // #define measurements 5
 #define threshold 0.2
-#define distance 0.3
+#define distance 0.4
 #define measured_power -40
 #define env_val 2.5
 #define filter 0.1
@@ -331,13 +331,8 @@ void packet_handler(uint8_t *packet) {
 
 float get_distance_to_leader() {
   // distance = 10^((Measured Power - Instant RSSI)/10*N)
-<<<<<<< HEAD
   float leader_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_leader_val) / (10 * env_val)));
   float follower_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
-=======
-  float leader_to_ap = pow(10, ((measured_power - (float)rssi_leader_val) / (10 * env_val)));
-  float follower_to_ap = pow(10, ((measured_power - (float)rssi_self_val) / (10 * env_val)));
->>>>>>> 83aa6cb9bf781323d5aafc49a284a221919dadd8
 
 #ifdef DEBUG
   Serial.print("L: ");
