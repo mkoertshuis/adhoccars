@@ -334,14 +334,16 @@ float get_distance_to_leader() {
   float leader_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_leader_val) / (10 * env_val)));
   float follower_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
 
-#ifdef DEBUG
-  Serial.print("L: ");
-  Serial.print(leader_to_ap);
-  Serial.print(", F: ");
-  Serial.print(follower_to_ap);
-  Serial.print(", D: ");
-  Serial.println(abs(follower_to_ap - leader_to_ap));
-#endif
+    if (onTimer2()) {
+      #ifdef DEBUG
+      Serial.print("L: ");
+      Serial.print(leader_to_ap);
+      Serial.print(", F: ");
+      Serial.print(follower_to_ap);
+      Serial.print(", D: ");
+      Serial.println(abs(follower_to_ap - leader_to_ap));
+      #endif
+    }
 
   return abs(follower_to_ap - leader_to_ap);
 }
@@ -465,7 +467,8 @@ void loop() {
     // }
   }
 
-  if (leader_assigned && onTimer2()) {
+  // if (leader_assigned && onTimer2()) {
+  if (leader_assigned) {
     float distance_delta = get_distance_to_leader();
     if (!leader) {
       follow_leader(distance_delta);
