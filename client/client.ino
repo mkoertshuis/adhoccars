@@ -14,7 +14,7 @@
 const char *networkName = "rssi-cars";
 // #define measurements 5
 #define threshold 0.1
-#define distance 1
+#define distance 0
 #define measured_power -50
 #define env_val 2.5
 #define filter 0.3
@@ -368,8 +368,33 @@ float get_distance_to_leader() {
     #endif
     // }
 
-  return fabs(follower_to_ap - leader_to_ap);
+  // return fabs(follower_to_ap - leader_to_ap);
+  return (follower_to_ap - leader_to_ap);
 }
+
+void follow_leader(float distance_delta) {
+  if (distance_delta > distance + threshold) {
+    if (prev_state != FORWARD) {
+      move_forward();
+      prev_state = FORWARD;
+    }
+  }
+
+  else if (distance_delta < distance - threshold) {
+    if (prev_state != BACK) {
+      move_back();
+      prev_state = BACK;
+    }
+  }
+
+  else {
+    if (prev_state != STOP) {
+      rotorstop();
+      prev_state = STOP;
+    }
+  }
+}
+
 
 void setup() {
   init_pins();
@@ -401,29 +426,6 @@ void setup() {
 
 
   rssi_self_val = WiFi.RSSI();
-}
-
-void follow_leader(float distance_delta) {
-  if (distance_delta > distance + threshold) {
-    if (prev_state != FORWARD) {
-      move_forward();
-      prev_state = FORWARD;
-    }
-  }
-
-  else if (distance_delta < distance - threshold) {
-    if (prev_state != BACK) {
-      move_back();
-      prev_state = BACK;
-    }
-  }
-
-  else {
-    if (prev_state != STOP) {
-      rotorstop();
-      prev_state = STOP;
-    }
-  }
 }
 
 void loop() {
