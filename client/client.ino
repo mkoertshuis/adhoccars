@@ -341,13 +341,13 @@ float get_distance_to_leader() {
       Serial.print(", F: ");
       Serial.print(follower_to_ap);
       Serial.print(", D: ");
-      Serial.print(abs(follower_to_ap - leader_to_ap));
+      Serial.print(fabs(follower_to_ap - leader_to_ap));
       Serial.print(", STATE: ");
       Serial.println(prev_state);
       #endif
     }
 
-  return abs(follower_to_ap - leader_to_ap);
+  return fabs(follower_to_ap - leader_to_ap);
 }
 
 void setup() {
@@ -380,7 +380,7 @@ void setup() {
   rssi_self_val = WiFi.RSSI();
 }
 
-void follow_leader(int distance_delta) {
+void follow_leader(float distance_delta) {
   if (distance_delta > distance + threshold) {
     if (prev_state != FORWARD) {
       move_forward();
