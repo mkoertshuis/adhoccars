@@ -7,7 +7,7 @@
 #define LOW 0
 #define HIGH 127
 #define PAUSE 300
-#define TIMER_DELAY 100
+#define TIMER_DELAY 300
 #define TIMER_DELAY2 1000
 
 const char *networkName = "rssi-cars";
@@ -16,7 +16,7 @@ const char *networkName = "rssi-cars";
 #define distance 0.4
 #define measured_power -40
 #define env_val 2.5
-#define filter 0.1
+#define filter 0.3
 
 const int udpPort = 3333;
 boolean connected = false;
