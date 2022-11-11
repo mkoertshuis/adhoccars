@@ -9,6 +9,7 @@
 #define PAUSE 300
 #define SEND_DELAY 300
 #define PRINT_DELAY 1000
+#define DIRECTION_DELAY 300
 
 const char *networkName = "rssi-cars";
 // #define measurements 5
@@ -48,6 +49,7 @@ uint64_t mac_self = 0;
 
 hw_timer_t *timer = NULL;
 hw_timer_t *timer2 = NULL;
+hw_timer_t *timer3 = NULL;
 
 enum movement {
   FORWARD,
@@ -57,7 +59,7 @@ enum movement {
   STOP
 };
 
-enum movement prev_state;
+enum movement prev_state = STOP;
 enum movement control_state = STOP;  // Used for control
 
 // Packet format:
@@ -91,12 +93,12 @@ void sendTimer() {
   if (timerReadMilis(timer) >= SEND_DELAY) {
     send_rssi();
 
-    if (leader_assigned) {
-      float distance_delta = get_distance_to_leader();
-      if (!leader) {
-        follow_leader(distance_delta);
-      }
-    }
+    // if (leader_assigned) {
+    //   float distance_delta = get_distance_to_leader();
+    //   if (!leader) {
+    //     follow_leader(distance_delta);
+    //   }
+    // }
 
     timerRestart(timer);
   }
@@ -105,6 +107,14 @@ void sendTimer() {
 bool printTimer() {
   if (timerReadMilis(timer2) >= PRINT_DELAY) {
     timerRestart(timer2);
+    return true;
+  }
+  return false;
+}
+
+bool directionTimer() {
+  if (timerReadMilis(timer3) >= DIRECTION_DELAY) {
+    timerRestart(timer3);
     return true;
   }
   return false;
@@ -338,15 +348,19 @@ void packet_handler(uint8_t *packet) {
 
 float get_distance_to_leader() {
   // distance = 10^((Measured Power - Instant RSSI)/10*N)
-  float leader_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_leader_val) / (10 * env_val)));
-  float follower_to_ap = 0.4*pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
+  float leader_to_ap = 0.4*powf(10, ((measured_power - (float) rssi_leader_val) / ( 10 * env_val)));
+  float follower_to_ap = 0.4*powf(10, ((measured_power - (float) rssi_self_val) / ( 10 * env_val)));
 
     // if (printTimer()) {
     #ifdef DEBUG
     Serial.print("L: ");
     Serial.print(leader_to_ap);
+    Serial.print(", ");
+    Serial.print(rssi_leader_val);
     Serial.print(", F: ");
     Serial.print(follower_to_ap);
+    Serial.print(", ");
+    Serial.print(rssi_self_val);
     Serial.print(", D: ");
     Serial.print(fabs(follower_to_ap - leader_to_ap));
     Serial.print(", STATE: ");
@@ -380,7 +394,9 @@ void setup() {
 
   Serial.println("Starting timer2...");
   timer2 = timerBegin(1, 80, true);
+  timer3 = timerBegin(2, 80, true);
   timerStart(timer2);
+  timerStart(timer3);
   Serial.println("Timer2 started!");
 
 
@@ -389,6 +405,7 @@ void setup() {
 
 void follow_leader(float distance_delta) {
   if (distance_delta > distance + threshold) {
+    Serial.println("distance_delta > distance + threshold");
     if (prev_state != FORWARD) {
       move_forward();
       prev_state = FORWARD;
@@ -396,6 +413,7 @@ void follow_leader(float distance_delta) {
   }
 
   else if (distance_delta < distance - threshold) {
+    Serial.println("distance_delta < distance + threshold");
     if (prev_state != BACK) {
       move_back();
       prev_state = BACK;
@@ -403,6 +421,7 @@ void follow_leader(float distance_delta) {
   }
 
   else {
+    Serial.println("Else");
     if (prev_state != STOP) {
       rotorstop();
       prev_state = STOP;
@@ -433,11 +452,16 @@ void loop() {
     }
     return;
   }
+  
 
-  // if (leader_assigned) {
-  //   float distance_delta = get_distance_to_leader();
-  //   if (!leader) {
-  //     follow_leader(distance_delta);
-  //   }
-  // }
+  if (directionTimer()) {
+    // Serial.println("test");
+    if (leader_assigned) {
+      float distance_delta = get_distance_to_leader();
+      if (!leader) {
+        follow_leader(distance_delta);
+      }
+    }
+  }  
+
 }
