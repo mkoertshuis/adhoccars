@@ -7,15 +7,16 @@
 // #define LOW 0
 // #define HIGH 255
 # define PAUSE 300
-# define TIMER_DELAY 200
+# define TIMER_DELAY 100
 # define TIMER_DELAY2 1000
 
 const char * networkName = "rssi-cars";
-#define measurements 5
+// #define measurements 5
 #define threshold 0.1
 #define distance 0.3
 #define measured_power -50
 #define env_val 2.5
+#define filter 0.1
 
 const int udpPort = 3333;
 boolean connected = false;
@@ -35,8 +36,8 @@ uint8_t packet[255];
 #define lb2 4
 const int control[4][2] = { {rf1, rf2}, {rb1, rb2}, {lf1, lf2}, {lb1, lb2} }; 
 
-int8_t rssi_leader[measurements];
-int8_t rssi_self[measurements];
+// int8_t rssi_leader[measurements];
+// int8_t rssi_self[measurements];
 
 int8_t rssi_leader_val = 0;
 int8_t rssi_self_val = 0;
@@ -76,7 +77,8 @@ void send_rssi() {
   buff[6] = (uint8_t) (mac_self >> 16) & 0xFF; 
   buff[7] = (uint8_t) (mac_self >> 8) & 0xFF; 
   buff[8] = (uint8_t) (mac_self >> 0) & 0xFF; 
-  buff[9] = (uint8_t) WiFi.RSSI();
+  // buff[9] = (uint8_t) WiFi.RSSI();
+  buff[9] = (uint8_t) rssi_self_val;
   
   udp.beginPacket(WiFi.broadcastIP(), udpPort);
   udp.write(buff, 10);
@@ -85,6 +87,7 @@ void send_rssi() {
 
 void onTimer(){
   if (timerReadMilis(timer) >= TIMER_DELAY) {
+    set_rssi_self();
     send_rssi();
     timerRestart(timer);   
   }
@@ -198,14 +201,14 @@ void turn_right() {
 }
 
 void set_rssi_leader(int8_t rssi) {
-
+  // filter is in leader itself, just like done in set_rssi_self
   rssi_leader_val = rssi;
   // rssi_leader_val += 0.2 * (rssi - rssi_leader_val);
 }
 
 void set_rssi_self() {
-  // rssi_self_val += 0.1 * (WiFi.RSSI() - rssi_self_val);
-  rssi_self_val = WiFi.RSSI();
+  rssi_self_val += filter * (WiFi.RSSI() - rssi_self_val);
+  // rssi_self_val = WiFi.RSSI();
 }
 
 void control_handler(uint8_t direction) {
@@ -393,20 +396,17 @@ void loop(){
     return;
   }
 
-  set_rssi_self();
-
   // If this robot is the follower and we have received our initial RSSI value
   if (!leader && rssi_received && leader_assigned && onTimer2()) {
   // if (!leader && rssi_received && leader_assigned) {
-    float distance_delta = get_distance_to_leader();
-
-    #ifdef DEBUG
-    // if (onTimer2()){
-    // Serial.print("Distance to leader: ");
-    // Serial.println(distance_delta);
-    // }      
     
-    #endif
+    float distance_delta = get_distance_to_leader();
+    
+
+    // #ifdef DEBUG
+    // Serial.print("Distance to leader: ");
+    // Serial.println(distance_delta);    
+    // #endif
 
     
     // if (distance_delta > distance + threshold) {
