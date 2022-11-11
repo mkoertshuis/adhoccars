@@ -4,18 +4,19 @@
 
 //#define DEBUG
 
-// #define LOW 0
-// #define HIGH 255
+#define LOW 0
+#define HIGH 127
 # define PAUSE 300
-# define TIMER_DELAY 200
+# define TIMER_DELAY 100
 # define TIMER_DELAY2 1000
 
 const char * networkName = "rssi-cars";
-#define measurements 5
+// #define measurements 5
 #define threshold 0.1
 #define distance 0.3
 #define measured_power -50
-#define env_val 2
+#define env_val 2.5
+#define filter 0.1
 
 const int udpPort = 3333;
 boolean connected = false;
@@ -35,8 +36,8 @@ uint8_t packet[255];
 #define lb2 4
 const int control[4][2] = { {rf1, rf2}, {rb1, rb2}, {lf1, lf2}, {lb1, lb2} }; 
 
-int8_t rssi_leader[measurements];
-int8_t rssi_self[measurements];
+// int8_t rssi_leader[measurements];
+// int8_t rssi_self[measurements];
 
 int8_t rssi_leader_val = 0;
 int8_t rssi_self_val = 0;
@@ -78,7 +79,8 @@ void send_rssi() {
   buff[6] = (uint8_t) (mac_self >> 16) & 0xFF; 
   buff[7] = (uint8_t) (mac_self >> 8) & 0xFF; 
   buff[8] = (uint8_t) (mac_self >> 0) & 0xFF; 
-  buff[9] = (uint8_t) WiFi.RSSI();
+  // buff[9] = (uint8_t) WiFi.RSSI();
+  buff[9] = (uint8_t) rssi_self_val;
   
   udp.beginPacket(WiFi.broadcastIP(), udpPort);
   udp.write(buff, 10);
@@ -87,6 +89,7 @@ void send_rssi() {
 
 void onTimer(){
   if (timerReadMilis(timer) >= TIMER_DELAY) {
+    set_rssi_self();
     send_rssi();
     timerRestart(timer);   
   }
@@ -148,7 +151,7 @@ void init_pins() {
 void rotorstop() {
   for ( int i = 0; i < 4; ++i ) {
     for ( int j = 0; j < 2; ++j ) {
-      digitalWrite(control[i][j], LOW);
+      analogWrite(control[i][j], LOW);
     }
   }
 }
@@ -157,8 +160,8 @@ void move_forward() {
    rotorstop();
    delay(PAUSE);
    for ( int i = 0; i < 4; ++i ) {
-     digitalWrite(control[i][0], HIGH);
-     digitalWrite(control[i][1], LOW);
+     analogWrite(control[i][0], HIGH);
+     analogWrite(control[i][1], LOW);
    }
 }
 
@@ -166,8 +169,8 @@ void move_back() {
   rotorstop();
   delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
-    digitalWrite(control[i][0], LOW);
-    digitalWrite(control[i][1], HIGH);
+    analogWrite(control[i][0], LOW);
+    analogWrite(control[i][1], HIGH);
   }
 }
 
@@ -176,11 +179,11 @@ void turn_left() {
   delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      digitalWrite(control[i][0], HIGH);
-      digitalWrite(control[i][1], LOW);
+      analogWrite(control[i][0], HIGH);
+      analogWrite(control[i][1], LOW);
     } else {
-      digitalWrite(control[i][0], LOW);
-      digitalWrite(control[i][1], HIGH); 
+      analogWrite(control[i][0], LOW);
+      analogWrite(control[i][1], HIGH); 
     }
   }
 }
@@ -190,22 +193,24 @@ void turn_right() {
   delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      digitalWrite(control[i][0], LOW);
-      digitalWrite(control[i][1], HIGH);
+      analogWrite(control[i][0], LOW);
+      analogWrite(control[i][1], HIGH);
     } else {
-      digitalWrite(control[i][0], HIGH);
-      digitalWrite(control[i][1], LOW); 
+      analogWrite(control[i][0], HIGH);
+      analogWrite(control[i][1], LOW); 
     }
   }
 }
 
 void set_rssi_leader(int8_t rssi) {
-
-  rssi_leader_val += 0.2 * (rssi - rssi_leader_val);
+  // filter is in leader itself, just like done in set_rssi_self
+  rssi_leader_val = rssi;
+  // rssi_leader_val += 0.2 * (rssi - rssi_leader_val);
 }
 
 void set_rssi_self() {
-  rssi_self_val += 0.01 * (WiFi.RSSI() - rssi_self_val);
+  rssi_self_val += filter * (WiFi.RSSI() - rssi_self_val);
+  // rssi_self_val = WiFi.RSSI();
 }
 
 void control_handler(uint8_t direction) {
@@ -293,6 +298,7 @@ void packet_handler(uint8_t * packet) {
     }
     case 3: // KILL
     {
+      rotorstop();
       leader_assigned = false;
       leader = false;
       rssi_received = false;
@@ -309,12 +315,12 @@ void packet_handler(uint8_t * packet) {
       mac_packet += (uint64_t) packet[7] << 8;
       mac_packet += (uint64_t) packet[8];
       int8_t rssi = (int8_t) packet[9];
-      #ifdef DEBUG
-      Serial.print("RSSI packet received from: ");
-      Serial.print(mac_packet);
-      Serial.print(", RSSI: ");
-      Serial.println(rssi);
-      #endif
+      // #ifdef DEBUG
+      // Serial.print("RSSI packet received from: ");
+      // Serial.print(mac_packet);
+      // Serial.print(", RSSI: ");
+      // Serial.println(rssi);
+      // #endif
 
       rssi_handler(mac_packet, rssi);
       break;
@@ -330,10 +336,12 @@ float get_distance_to_leader() {
   float follower_to_ap = pow(10, ((measured_power - (float) rssi_self_val) / (10 * env_val)));
 
   #ifdef DEBUG
-  Serial.print("Distance from leader to AP: ");  
+  Serial.print("L: ");  
   Serial.print(leader_to_ap);
-  Serial.print(", Distance from follower to AP: ");  
-  Serial.println(follower_to_ap);
+  Serial.print(", F: ");
+  Serial.print(follower_to_ap);
+  Serial.print(", D: ");
+  Serial.print(abs(follower_to_ap - leader_to_ap));
   #endif
   
   return abs(follower_to_ap - leader_to_ap);
@@ -363,7 +371,10 @@ void setup(){
   Serial.println("Starting timer2...");
   timer2 = timerBegin(1, 80, true);
   timerStart(timer2);
-  Serial.println("Timer2 started!");  
+  Serial.println("Timer2 started!");
+
+
+  rssi_self_val = WiFi.RSSI();  
 }
 
 void loop(){
@@ -399,21 +410,17 @@ void loop(){
     return;
   }
 
-  set_rssi_self();
-
   // If this robot is the follower and we have received our initial RSSI value
-  if (!leader && rssi_received && leader_assigned) {
-    float distance_delta = get_distance_to_leader();
-
-    #ifdef DEBUG
-    if (onTimer2()){
-      Serial.print("Distance to leader: ");
-      Serial.println(distance_delta);
-    }      
+  if (!leader && rssi_received && leader_assigned && onTimer2()) {
+  // if (!leader && rssi_received && leader_assigned) {
     
-    #endif
-  }
+    float distance_delta = get_distance_to_leader();
+    
 
+    // #ifdef DEBUG
+    // Serial.print("Distance to leader: ");
+    // Serial.println(distance_delta);    
+    // #endif
     
     // if (distance_delta > distance + threshold) {
     //   if (prev_state != FORWARD) {
