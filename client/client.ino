@@ -4,8 +4,8 @@
 
 #define DEBUG
 
-// #define LOW 0
-// #define HIGH 255
+#define LOW 0
+#define HIGH 127
 # define PAUSE 300
 # define TIMER_DELAY 100
 # define TIMER_DELAY2 1000
@@ -149,7 +149,7 @@ void init_pins() {
 void rotorstop() {
   for ( int i = 0; i < 4; ++i ) {
     for ( int j = 0; j < 2; ++j ) {
-      digitalWrite(control[i][j], LOW);
+      analogWrite(control[i][j], LOW);
     }
   }
 }
@@ -158,8 +158,8 @@ void move_forward() {
    rotorstop();
    delay(PAUSE);
    for ( int i = 0; i < 4; ++i ) {
-     digitalWrite(control[i][0], HIGH);
-     digitalWrite(control[i][1], LOW);
+     analogWrite(control[i][0], HIGH);
+     analogWrite(control[i][1], LOW);
    }
 }
 
@@ -167,8 +167,8 @@ void move_back() {
   rotorstop();
   delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
-    digitalWrite(control[i][0], LOW);
-    digitalWrite(control[i][1], HIGH);
+    analogWrite(control[i][0], LOW);
+    analogWrite(control[i][1], HIGH);
   }
 }
 
@@ -177,11 +177,11 @@ void turn_left() {
   delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      digitalWrite(control[i][0], HIGH);
-      digitalWrite(control[i][1], LOW);
+      analogWrite(control[i][0], HIGH);
+      analogWrite(control[i][1], LOW);
     } else {
-      digitalWrite(control[i][0], LOW);
-      digitalWrite(control[i][1], HIGH); 
+      analogWrite(control[i][0], LOW);
+      analogWrite(control[i][1], HIGH); 
     }
   }
 }
@@ -191,11 +191,11 @@ void turn_right() {
   delay(PAUSE);
   for ( int i = 0; i < 4; ++i ) {
     if ( i < 2 ) {
-      digitalWrite(control[i][0], LOW);
-      digitalWrite(control[i][1], HIGH);
+      analogWrite(control[i][0], LOW);
+      analogWrite(control[i][1], HIGH);
     } else {
-      digitalWrite(control[i][0], HIGH);
-      digitalWrite(control[i][1], LOW); 
+      analogWrite(control[i][0], HIGH);
+      analogWrite(control[i][1], LOW); 
     }
   }
 }
